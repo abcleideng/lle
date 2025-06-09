@@ -1,0 +1,719 @@
+
+
+<!-- 完整版，数据可视化页面会统计所有天数（不限制天数），表格只显示1码4码8码12码、4码8码12码、8码12码和总次数，且自动适配手机端 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>彩票中奖分析工具</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3a86ff;
+            --secondary: #8338ec;
+            --accent: #ff006e;
+            --dark: #22223b;
+            --light: #f8f9fa;
+            --gray: #e9ecef;
+            --white: #fff;
+            --success: #38b000;
+            --danger: #ef233c;
+            --info: #17a2b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; background: var(--light); }
+        body { font-family: 'Montserrat', sans-serif; color: var(--dark); min-height: 100vh; }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 0 80px 0;
+            background: var(--light);
+        }
+        header {
+            text-align: center;
+            padding: 2rem 1rem 1rem 1rem;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 0 0 18px 18px;
+            margin-bottom: 1.2rem;
+        }
+        h1 {
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
+        }
+        h2 {
+            font-size: 1.15rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        .tab-container {
+            display: flex;
+            justify-content: space-between;
+            background: var(--white);
+            border-radius: 12px;
+            margin: 0 1rem 1.2rem 1rem;
+            box-shadow: 0 2px 8px rgba(58,134,255,0.06);
+            overflow: hidden;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 0.9rem 0;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .tab-button.active {
+            background: var(--primary);
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+            padding: 0 1rem;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(58,134,255,0.06);
+            padding: 1.2rem 1rem;
+            margin-bottom: 1.2rem;
+        }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 0.9rem;
+            border: 1.5px solid var(--gray);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            resize: vertical;
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.7rem;
+            margin-bottom: 0.5rem;
+        }
+        .btn {
+            flex: 1;
+            padding: 0.7rem 0;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-secondary { background: var(--secondary); color: #fff; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .result-item, .history-item, .advice-item {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 4px rgba(58,134,255,0.04);
+        }
+        .result-item h3, .history-date {
+            font-size: 1.05rem;
+            color: var(--primary);
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+        }
+        .count, .badge {
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 1.1em;
+        }
+        .badge-success { color: var(--success); }
+        .badge-primary { color: var(--primary); }
+        .total-count {
+            font-size: 1rem;
+            color: var(--success);
+            text-align: left;
+            margin: 0.7rem 0 0.2rem 0;
+        }
+        .empty-state {
+            text-align: center;
+            color: #aaa;
+            padding: 2.5rem 0;
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.5rem; color: var(--gray); }
+        /* 手机端表格风格 */
+        .mobile-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.2rem;
+        }
+        .mobile-table th, .mobile-table td {
+            text-align: left;
+            padding: 0.5rem 0.2rem;
+            font-size: 1rem;
+            border-bottom: 1px solid var(--gray);
+        }
+        .mobile-table th {
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 1.02rem;
+            background: var(--light);
+        }
+        .mobile-table tr:last-child td { border-bottom: none; }
+        .mobile-table-row {
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(58,134,255,0.04);
+            margin-bottom: 0.7rem;
+            display: block;
+            padding: 0.7rem 0.7rem 0.5rem 0.7rem;
+        }
+        .advice-item h3 { color: var(--info); font-size: 1.05rem; margin-bottom: 0.5rem; }
+        @media (max-width: 600px) {
+            .container { padding: 0 0 80px 0; }
+            .card, .tab-content { padding: 0; }
+            .tab-container { margin: 0 0.2rem 1.2rem 0.2rem; }
+            .mobile-table th, .mobile-table td { font-size: 0.98rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>彩票中奖分析工具</h1>
+            <div style="font-size:0.98rem;opacity:0.85;">手机端友好体验，滑动查看全部记录</div>
+        </header>
+        <div class="tab-container">
+            <button class="tab-button active" onclick="openTab(event, 'analyze')">数据分析</button>
+            <button class="tab-button" onclick="openTab(event, 'history')">历史记录</button>
+            <button class="tab-button" onclick="openTab(event, 'visualization')">数据可视化</button>
+        </div>
+        <div id="analyze" class="tab-content active">
+            <div class="card">
+                <h2>输入中奖数据</h2>
+                <textarea id="inputData" placeholder="请粘贴中奖记录数据..."></textarea>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="analyzeData()">分析数据</button>
+                    <button class="btn btn-secondary" onclick="saveResult()" id="saveBtn" disabled>保存结果</button>
+                    <button class="btn btn-danger" onclick="clearData()">清空数据</button>
+                </div>
+            </div>
+            <div class="card" id="results" style="display:none;">
+                <h2>统计结果（所有用户）</h2>
+                <div class="result-section" id="allUserResults"></div>
+            </div>
+        </div>
+        <div id="history" class="tab-content">
+            <div class="card">
+                <h2>历史统计记录</h2>
+                <div class="btn-group">
+                    <button class="btn btn-danger" onclick="clearHistory()">清空历史记录</button>
+                </div>
+                <div id="historyList">
+                    <div class="empty-state">
+                        <i class="fas fa-history"></i>
+                        <h3>暂无历史记录</h3>
+                        <p>分析并保存数据后，结果将显示在这里</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="visualization" class="tab-content">
+            <div class="card">
+                <h2>用户中奖天数排名</h2>
+                <div id="userStatsTable"></div>
+                <h2>科学选号建议</h2>
+                <div id="adviceSection"></div>
+            </div>
+        </div>
+    </div>
+    <div id="customAlert" style="display:none;position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:999;background:rgba(0,0,0,0.15);">
+  <div style="position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:1.2em 2em;border-radius:10px;box-shadow:0 2px 12px #0002;font-size:1.1em;" id="customAlertMsg"></div>
+</div>
+    <script>
+let currentResults = [];
+const MAX_DAYS = 60;
+
+function getTodayStr() {
+    const d = new Date();
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadHistory();
+});
+
+function openTab(event, tabName) {
+    const tabContents = document.getElementsByClassName('tab-content');
+    for (let i = 0; i < tabContents.length; i++) {
+        tabContents[i].classList.remove('active');
+    }
+    const tabButtons = document.getElementsByClassName('tab-button');
+    for (let i = 0; i < tabButtons.length; i++) {
+        tabButtons[i].classList.remove('active');
+    }
+    document.getElementById(tabName).classList.add('active');
+    event.currentTarget.classList.add('active');
+    if (tabName === 'history') {
+        loadHistory();
+    } else if (tabName === 'visualization') {
+        updateVisualization();
+    }
+}
+function showCustomAlert(msg) {
+    const alertDiv = document.getElementById('customAlert');
+    const msgDiv = document.getElementById('customAlertMsg');
+    msgDiv.innerText = msg;
+    alertDiv.style.display = 'block';
+    setTimeout(() => {
+        alertDiv.style.display = 'none';
+    }, 1000);
+}
+function analyzeData() {
+    const inputData = document.getElementById('inputData').value;
+    if (!inputData.trim()) {
+        alert('请输入要分析的数据');
+        return;
+    }
+    const userBlocks = [];
+    const userBlockRegex = /([^\n]+,\s*\[\d{4}\/\d{1,2}\/\d{1,2}.*?)(?=(?:[^\n]+,\s*\[\d{4}\/\d{1,2}\/\d{1,2})|$)/gs;
+    let match;
+    while ((match = userBlockRegex.exec(inputData)) !== null) {
+        userBlocks.push(match[1].trim());
+    }
+
+    currentResults = [];
+    let total_1_4_8_12 = 0;
+    let total_4_8_12 = 0;
+    let total_8_12 = 0;
+    let total_12only = 0;
+    let total_1 = 0, total_4 = 0, total_8 = 0, total_12 = 0;
+
+    userBlocks.forEach(block => {
+        if (!block.trim()) return;
+        const lines = block.trim().split('\n');
+        const userLine = lines[0];
+        const user = userLine.split(',')[0].trim();
+        const dateMatch = userLine.match(/\[(\d{4}\/\d{1,2}\/\d{1,2})/);
+        const date = dateMatch ? dateMatch[1] : getTodayStr();
+
+        let user_1 = 0, user_4 = 0, user_8 = 0, user_12 = 0;
+        let has1 = false, has4 = false, has8 = false, has12 = false;
+        lines.forEach(line => {
+            if (/1码[：:][^\n]*✘/.test(line)) { user_1++; has1 = true; }
+            if (/4码[：:][^\n]*✘/.test(line)) { user_4++; has4 = true; }
+            if (/8码[：:][^\n]*✘/.test(line)) { user_8++; has8 = true; }
+            if (/12码[：:，,\. ]*[^\n]*✘/.test(line)) { user_12++; has12 = true; }
+        });
+        total_1 += user_1;
+        total_4 += user_4;
+        total_8 += user_8;
+        total_12 += user_12;
+
+        let comboType = '';
+        if (has1 && has4 && has8 && has12) {
+            comboType = '1+4+8+12';
+            total_1_4_8_12 += 1;
+        } else if (!has1 && has4 && has8 && has12) {
+            comboType = '4+8+12';
+            total_4_8_12 += 1;
+        } else if (!has1 && !has4 && has8 && has12) {
+            comboType = '8+12';
+            total_8_12 += 1;
+        } else if (!has1 && !has4 && !has8 && has12) {
+            comboType = '12码单独';
+            total_12only += 1;
+        } else {
+            comboType = '其它';
+        }
+
+        if (has12) {
+            currentResults.push({
+                user: user,
+                date: date,
+                comboType: comboType,
+                code1: user_1,
+                code4: user_4,
+                code8: user_8,
+                code12: user_12,
+                inputData: block.trim()
+            });
+        }
+    });
+
+    let html = '';
+    currentResults.forEach(r => {
+        html += `
+        <div class="result-item">
+            <h3>${r.user}（${r.date}）</h3>
+            <div>组合类型: <span class="count">${r.comboType}</span></div>
+            <div>1码出现次数: <span class="count">${r.code1}</span></div>
+            <div>4码出现次数: <span class="count">${r.code4}</span></div>
+            <div>8码出现次数: <span class="count">${r.code8}</span></div>
+            <div>12码出现次数: <span class="count">${r.code12}</span></div>
+        </div>
+        `;
+    });
+    html += `
+    <div class="total-count">
+        所有用户组合统计：<br>
+        1码4码8码12码组合：<b>${total_1_4_8_12}</b> 人，
+        4码8码12码组合：<b>${total_4_8_12}</b> 人，
+        8码12码组合：<b>${total_8_12}</b> 人，
+        12码单独：<b>${total_12only}</b> 人，
+        总计：<b>${total_1_4_8_12 + total_4_8_12 + total_8_12 + total_12only}</b> 人
+    </div>
+    <div class="total-count" style="margin-top:1em;">
+        <b>所有用户1码总次数：</b>${total_1} 次，
+        <b>4码总次数：</b>${total_4} 次，
+        <b>8码总次数：</b>${total_8} 次，
+        <b>12码总次数：</b>${total_12} 次
+    </div>
+    `;
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('allUserResults').innerHTML = html;
+    document.getElementById('saveBtn').disabled = false;
+}
+
+// ...existing code...
+// ...existing code...
+function saveResult() {
+    if (!currentResults || currentResults.length === 0) return;
+    let history = JSON.parse(localStorage.getItem('lotteryHistory')) || [];
+    let added = 0;
+    const now = new Date();
+    currentResults.forEach(result => {
+        const alreadySaved = history.some(item => item.inputData === result.inputData);
+        if (!alreadySaved) {
+            let count1 = result.comboType === '1+4+8+12' ? 1 : 0;
+            let count4 = (result.comboType === '1+4+8+12' || result.comboType === '4+8+12') ? 1 : 0;
+            let count8 = (result.comboType === '1+4+8+12' || result.comboType === '4+8+12' || result.comboType === '8+12') ? 1 : 0;
+            let totalAll = (result.code1 || 0) + (result.code4 || 0) + (result.code8 || 0) + (result.code12 || 0);
+            let dateOnly = result.date.match(/^\d{4}\/\d{1,2}\/\d{1,2}/) ? result.date.match(/^\d{4}\/\d{1,2}\/\d{1,2}/)[0] : result.date;
+            history.unshift({
+                ...result,
+                date: dateOnly,
+                count1,
+                count4,
+                count8,
+                totalAll
+            });
+            added++;
+        }
+    });
+    const uniqueDates = Array.from(new Set(history.map(item => item.date)));
+    if (uniqueDates.length > MAX_DAYS) {
+        const keepDates = uniqueDates.slice(0, MAX_DAYS);
+        history = history.filter(item => keepDates.includes(item.date));
+    }
+    localStorage.setItem('lotteryHistory', JSON.stringify(history));
+    // 使用自定义弹窗
+    if (added === 0) {
+        showCustomAlert('该数据已保存！');
+    } else {
+        showCustomAlert(`已保存${added}条用户记录！`);
+    }
+    // 清空输入框
+    document.getElementById('inputData').value = '';
+    document.getElementById('saveBtn').disabled = true;
+    currentResults = [];
+    loadHistory();
+    updateVisualization();
+}
+// ...existing code...
+// ...existing code...
+// ...existing code...
+function loadHistory() {
+    const historyList = document.getElementById('historyList');
+    historyList.innerHTML = '';
+    let history = JSON.parse(localStorage.getItem('lotteryHistory')) || [];
+    const now = new Date();
+    history = history.filter(item => {
+        let dateStr = item.date;
+        let m = dateStr.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+        if (!m) return false;
+        let d = new Date(m[1], m[2] - 1, m[3]);
+        return (now - d) / (1000 * 3600 * 24) < MAX_DAYS;
+    });
+    if (history.length === 0) {
+        historyList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                <h3>暂无历史记录</h3>
+                <p>分析并保存数据后，结果将显示在这里</p>
+            </div>
+        `;
+        return;
+    }
+    history.forEach((item, index) => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        historyItem.innerHTML = `
+            <div class="history-date">记录 ${index + 1} - ${item.date} - ${item.user || ''}</div>
+            <div class="history-content">
+                <p><strong>输入数据:</strong> ${item.inputData.split('\n')[0]}...</p>
+                <p><strong>组合统计:</strong> 
+                    1码4码8码12码组合: <span class="badge badge-primary">${item.count1 || 0}次</span>, 
+                    4码8码12码组合: <span class="badge badge-primary">${item.count4 || 0}次</span>, 
+                    8码12码组合: <span class="badge badge-primary">${item.count8 || 0}次</span>
+                </p>
+                <p><strong>总出现次数:</strong> 
+                    <span class="badge badge-success">${item.totalAll || 0}次</span></p>
+            </div>
+        `;
+        historyList.appendChild(historyItem);
+    });
+}
+
+function clearData() {
+    document.getElementById('inputData').value = '';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('saveBtn').disabled = true;
+    currentResults = [];
+}
+
+function clearHistory() {
+    if (confirm('确定要清空所有历史记录吗？此操作不可恢复！')) {
+        localStorage.removeItem('lotteryHistory');
+        loadHistory();
+        updateVisualization();
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('saveBtn').disabled = true;
+        currentResults = [];
+    }
+}
+
+/// ...existing code...
+function updateVisualization() {
+    let history = JSON.parse(localStorage.getItem('lotteryHistory')) || [];
+
+    // 用户中奖天数排名表格（前20名+可展开收缩）
+    const userDays = {};
+    history.forEach(item => {
+        if (!item.user) return;
+        const dateOnly = item.date.split(' ')[0];
+        if (!userDays[item.user]) userDays[item.user] = new Set();
+        userDays[item.user].add(dateOnly);
+    });
+    const userList = Object.entries(userDays)
+        .sort((a, b) => b[1].size - a[1].size)
+        .map(([user, days], idx) => ({ user, days: days.size, idx: idx + 1 }));
+
+    let showAll = window.__userTableShowAll || false;
+    let tableRows = '';
+    let btnHtml = '';
+    const maxShow = 20;
+    userList.forEach((row, i) => {
+        if (!showAll && i >= maxShow) return;
+        tableRows += `<tr>
+          <td>${row.idx}</td>
+          <td>${row.user}</td>
+          <td><span class="badge badge-success">${row.days}</span></td>
+        </tr>`;
+    });
+    if (userList.length > maxShow) {
+        btnHtml = `<div style="text-align:center;margin:0.5em 0;">
+            <button class="btn btn-secondary" style="width:90%;" onclick="toggleUserTableShowAll()">
+                ${showAll ? '收起只看前20名' : '展开全部（共'+userList.length+'人）'}
+            </button>
+        </div>`;
+    }
+
+    let userRankTable = `<div style="overflow-x:auto;">
+    <table class="mobile-table" style="width:100%;min-width:0;">
+    <thead>
+      <tr>
+        <th style="width:3em;">排名</th>
+        <th>用户名</th>
+        <th>中奖天数</th>
+      </tr>
+    </thead>
+    <tbody id="userRankTableBody">${tableRows}</tbody>
+    </table>
+    </div>${btnHtml}`;
+
+    // 每天各组中奖人数统计
+    const dayMap = {};
+    history.forEach(item => {
+        const date = item.date.split(' ')[0];
+        if (!dayMap[date]) {
+            dayMap[date] = {
+                group_1_4_8_12: 0,
+                group_4_8_12: 0,
+                group_8_12: 0,
+                total: 0
+            };
+        }
+        // 组合人数
+        if (item.comboType === '1+4+8+12') {
+            dayMap[date].group_1_4_8_12++;
+            dayMap[date].group_4_8_12++;
+            dayMap[date].group_8_12++;
+        } else if (item.comboType === '4+8+12') {
+            dayMap[date].group_4_8_12++;
+            dayMap[date].group_8_12++;
+        } else if (item.comboType === '8+12') {
+            dayMap[date].group_8_12++;
+        }
+        // 总次数
+        let total = (item.code1 || 0) + (item.code4 || 0) + (item.code8 || 0) + (item.code12 || 0);
+        dayMap[date].total += total;
+    });
+
+    // 展示所有天数
+    const sortedDates = Object.keys(dayMap).sort().reverse();
+
+    // 只显示三个组合和总次数的表格，所有天数
+// ...existing code...
+let detailTable = `<div style="overflow-x:auto;margin-bottom:1.2em;">
+<table class="mobile-table" style="width:100%;min-width:400px;">
+  <thead>
+    <tr>
+      <th>日期</th>
+      <th>1码4码8码12码</th>
+      <th>4码8码12码</th>
+      <th>8码12码</th>
+      <th>总次数</th>
+    </tr>
+  </thead>
+  <tbody>`;
+sortedDates.forEach(date => {
+    const d = dayMap[date];
+    detailTable += `<tr>
+      <td style="text-align:center;">${date}</td>
+      <td style="text-align:center;color:#ff006e;font-weight:bold;">${d.group_1_4_8_12}</td>
+      <td style="text-align:center;color:#ff006e;font-weight:bold;">${d.group_4_8_12}</td>
+      <td style="text-align:center;color:#ff006e;font-weight:bold;">${d.group_8_12}</td>
+      <td style="text-align:center;color:#ff006e;font-weight:bold;">${d.total}</td>
+    </tr>`;
+});
+detailTable += `</tbody></table></div>`;
+// ...existing code...
+
+    // 只保留用户中奖天数排名和四组统计表格
+    document.getElementById('userStatsTable').innerHTML = userRankTable + detailTable;
+
+    updateAdviceSection(dayMap, sortedDates);
+}
+// ...existing code...
+function toggleUserTableShowAll() {
+    window.__userTableShowAll = !window.__userTableShowAll;
+    updateVisualization();
+}
+// ...existing code...
+// 展开/收缩按钮事件
+function toggleUserTableShowAll() {
+    window.__userTableShowAll = !window.__userTableShowAll;
+    updateVisualization();
+}
+
+function updateAdviceSection(dayMap, sortedDates) {
+    const adviceSection = document.getElementById('adviceSection');
+    if (!sortedDates.length) {
+        adviceSection.innerHTML = `<div class="empty-state"><h3>暂无历史记录</h3></div>`;
+        return;
+    }
+    // 统计全部天数未中奖最多的前十名用户
+    let history = JSON.parse(localStorage.getItem('lotteryHistory')) || [];
+    const allDates = sortedDates;
+    const userDayMap = {};
+    history.forEach(item => {
+        const date = item.date.split(' ')[0];
+        if (!allDates.includes(date)) return;
+        if (!userDayMap[item.user]) userDayMap[item.user] = [];
+        userDayMap[item.user].push(date);
+    });
+    const userLastWin = [];
+    allDates.forEach((date, idx) => {
+        Object.keys(userDayMap).forEach(user => {
+            if (userDayMap[user].includes(date)) {
+                if (!userLastWin.find(u => u.user === user)) {
+                    userLastWin.push({ user, daysAgo: idx });
+                }
+            }
+        });
+    });
+    Object.keys(userDayMap).forEach(user => {
+        if (!userLastWin.find(u => u.user === user)) {
+            userLastWin.push({ user, daysAgo: allDates.length });
+        }
+    });
+    userLastWin.sort((a, b) => b.daysAgo - a.daysAgo);
+    const top10 = userLastWin.slice(0, 10);
+
+   // ...existing code...
+let html = `<div class="advice-item"><h3>全部历史未中奖最多的前十名用户</h3>
+<div style="overflow-x:auto;">
+<table class="mobile-table" style="width:100%;min-width:240px;">
+  <thead>
+    <tr>
+      <th style="width:3em;">排名</th>
+      <th>用户名</th>
+      <th>未中奖天数</th>
+    </tr>
+  </thead>
+  <tbody>`;
+top10.forEach((u, idx) => {
+    html += `<tr>
+      <td style="text-align:center;">${idx + 1}</td>
+      <td>${u.user}</td>
+      <td style="text-align:center;color:#ff006e;font-weight:bold;">
+        ${u.daysAgo === allDates.length ? allDates.length + '天以上' : u.daysAgo + '天'}
+      </td>
+    </tr>`;
+});
+html += `</tbody></table></div>
+<div style="color:#888;font-size:0.98em;">这些用户近期未中奖，下一期可能更有机会中奖。</div></div>`;
+// ...existing code...
+    // 继续显示原有的三个周期统计（近10天/20天/30天）
+    const groups = [
+        { key: 'group_1_4_8_12', label: '1码4码8码12码组' },
+        { key: 'group_4_8_12', label: '4码8码12码' },
+        { key: 'group_8_12', label: '8码12码' }
+    ];
+    const periods = [
+        { days: 10, title: '近10天' },
+        { days: 20, title: '近20天' },
+        { days: 30, title: '近30天' }
+    ];
+    periods.forEach(period => {
+        const showDates = sortedDates.slice(0, period.days).reverse();
+        html += `<div class="advice-item"><h3>${period.title}各组中奖区间统计</h3>`;
+        groups.forEach(g => {
+            if (showDates.length === 0) {
+                html += `<div style="color:#ef233c;">${g.label}：暂无数据</div>`;
+                return;
+            }
+            const arr = showDates.map(date => dayMap[date][g.key]);
+            const min = Math.min(...arr);
+            const max = Math.max(...arr);
+            const sum = arr.reduce((a, b) => a + b, 0);
+            const avg = (sum / arr.length).toFixed(2);
+            const winDays = arr.filter(v => v > 0).length;
+            const rate = ((winDays / arr.length) * 100).toFixed(2) + '%';
+           // ...existing code...
+           html += `<div style="margin-bottom:0.3rem;">
+    <b>${g.label}</b>：区间 <b>${min}~${max}</b>，平均 <b>${avg}</b>，
+    <span style="color:${winDays/arr.length>=0.7?'#38b000':'#ef233c'};font-weight:bold;">中奖率 ${rate}</span>
+</div>`;
+// ...existing code...
+        });
+        html += `</div>`;
+    });
+    html += `<div style="color:#888;font-size:0.98em;">中奖率=周期内有中奖的天数/总天数，区间为最小~最大中奖人数。</div>`;
+    adviceSection.innerHTML = html;
+}
+</script>
+</body>
+</html>
